@@ -111,7 +111,7 @@ def if_key_exist_split_item_and_convert_to_float(key, obj):
 
 
 if __name__ == '__main__':
-    with open('data/car_database.json') as f:
+    with open('../data/car_database.json') as f:
         for line in f:
             obj = loads(line)
 
