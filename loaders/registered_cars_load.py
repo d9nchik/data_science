@@ -38,11 +38,6 @@ if __name__ == '__main__':
             # extracting date
             date_parts = list(map(lambda x: int(x), arr[3].split('.')))
             arr[3] = date(date_parts[-1], date_parts[-2], date_parts[-3])
-            #
-            # print(arr)
-            #
-            # if counter==5:
-            #     break
 
             # execute SQL
             try:
