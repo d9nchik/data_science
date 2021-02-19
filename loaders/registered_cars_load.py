@@ -22,7 +22,7 @@ def convert_to_int_if_not_none(item):
 
 
 if __name__ == '__main__':
-    with open('../data/tz_2020.csv') as f:
+    with open('../data/tz_2021.csv') as f:
         counter = 0
         for line in f:
             counter += 1
