@@ -13,12 +13,6 @@ CREATE TABLE stage_zone.classification_ukraine_objects
     object_name                      varchar(75)        not null
 );
 
--- Maybe useless stuff
--- CREATE INDEX ON stage_zone.classification_ukraine_objects (first_level);
--- CREATE INDEX ON stage_zone.classification_ukraine_objects (second_level);
--- CREATE INDEX ON stage_zone.classification_ukraine_objects (third_level);
--- CREATE INDEX ON stage_zone.classification_ukraine_objects (fourth_level);
-
 CREATE TABLE stage_zone.registered_cars
 (
     registered_car_id                serial primary key not null,
@@ -40,6 +34,22 @@ CREATE TABLE stage_zone.registered_cars
     own_weight                       double precision,
     total_weight                     double precision,
     registration_number_new          varchar(20)
+);
+
+CREATE TABLE stage_zone.stolen_cars
+(
+    stolen_cars_id       serial primary key not null,
+    brand                varchar(30)        not null,
+    model                varchar(30)        not null,
+    car_type             varchar(40)        not null,
+    color                varchar(15)        not null,
+    vehicle_number       varchar(20),
+    body_number          varchar(20),
+    chassis_number       varchar(20),
+    engine_number        varchar(20),
+    illegal_seizure_date timestamp          not null,
+    organ_unit           varchar(110)       not null,
+    insert_date          timestamp          not null
 );
 
 CREATE TABLE stage_zone.cars_descriptions
@@ -717,13 +727,6 @@ CREATE TRIGGER registered_cars_insert_trigger
 
 EXECUTE PROCEDURE stage_zone.registered_cars_insert_trigger_fnc();
 
-
-EXPLAIN
-SELECT distinct on (registered_car_id) *
-FROM stage_zone.registered_cars rc
-         JOIN filter_zone.classification_ukraine_objects cuo ON rc.classification_ukraine_object_id = cuo.level
-         JOIN stage_zone.cars_descriptions cd
-              ON rc.model = cd.model AND rc.brand = cd.brand AND rc.make_year > cd.year_production_putting;
 
 EXPLAIN
 SELECT cars_descriptions_id
