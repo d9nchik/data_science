@@ -243,7 +243,7 @@ CREATE TABLE public.classification_ukraine_object_dimension
     level                                      char(10) unique    not null,
     category                                   char(1),
     object_name                                varchar(75)        not null,
-    level1                                     varchar(75),
+    level1                                     varchar(75)        not null,
     level2                                     varchar(75),
     level3                                     varchar(75),
     level4                                     varchar(75)
