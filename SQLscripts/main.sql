@@ -217,7 +217,10 @@ CREATE TABLE public.color_dimension
 CREATE TABLE public.registration_date_dimension
 (
     registration_date_dimension_id serial primary key not null,
-    registration_date              date unique        not null
+    registration_date              date unique        not null,
+    registration_year              smallint           not null,
+    registration_month             smallint           not null,
+    registration_day               smallint           not null
 );
 
 CREATE TABLE public.department_dimension
@@ -239,7 +242,11 @@ CREATE TABLE public.classification_ukraine_object_dimension
     classification_ukraine_object_dimension_id serial primary key not null,
     level                                      char(10) unique    not null,
     category                                   char(1),
-    object_name                                varchar(75)        not null
+    object_name                                varchar(75)        not null,
+    level1                                     varchar(75),
+    level2                                     varchar(75),
+    level3                                     varchar(75),
+    level4                                     varchar(75)
 );
 
 
@@ -322,6 +329,7 @@ CREATE TABLE public.detail_information_about_car_registration
     number_of_valves_per_cylinder                 smallint,
     drive_wheel                                   varchar(25),
     number_of_gears                               varchar(35),
+    is_transmission_automatic                     boolean     not null,
     front_suspension                              varchar(50),
     rear_suspension                               varchar(80),
     is_abs                                        bool,
@@ -399,6 +407,12 @@ BEGIN
 end;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION filter_zone.get_name_of_classification_ukraine_object_by_level(user_level char) returns varchar AS
+$$
+BEGIN
+    return (SELECT object_name FROM filter_zone.classification_ukraine_objects WHERE user_level = level);
+end;
+$$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION public.get_or_create_classification_ukraine_object_id(level_search char) returns int AS
 $$
@@ -406,8 +420,26 @@ BEGIN
     if level_search is null then
         RETURN null;
     end if;
-    INSERT INTO public.classification_ukraine_object_dimension (level, category, object_name)
-    SELECT level, category, object_name
+    WITH description AS (SELECT *
+                         FROM stage_zone.classification_ukraine_objects
+                         WHERE stage_zone.classification_ukraine_objects.classification_ukraine_object_id =
+                               (SELECT filter_zone.classification_ukraine_objects.classification_ukraine_object_id
+                                FROM filter_zone.classification_ukraine_objects
+                                WHERE level = level_search))
+    INSERT
+    INTO public.classification_ukraine_object_dimension (level, category, object_name, level1, level2, level3, level4)
+    SELECT level,
+           category,
+           object_name,
+           (SELECT *
+            FROM filter_zone.get_name_of_classification_ukraine_object_by_level((SELECT first_level FROM description))),
+           (SELECT *
+            FROM filter_zone.get_name_of_classification_ukraine_object_by_level(
+                        (SELECT second_level FROM description))),
+           (SELECT *
+            FROM filter_zone.get_name_of_classification_ukraine_object_by_level((SELECT third_level FROM description))),
+           (SELECT *
+            FROM filter_zone.get_name_of_classification_ukraine_object_by_level((SELECT fourth_level FROM description)))
     FROM filter_zone.classification_ukraine_objects
     WHERE level = level_search
       AND NOT EXISTS(SELECT NULL -- canonical way, but you can select
@@ -537,8 +569,9 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION public.get_or_create_registration_date_id(dat date) returns int AS
 $$
 BEGIN
-    INSERT INTO public.registration_date_dimension (registration_date)
-    SELECT dat
+    INSERT INTO public.registration_date_dimension (registration_date, registration_year, registration_month,
+                                                    registration_day)
+    SELECT dat, extract(YEAR from dat), extract(Month from dat), extract(Day from dat)
     WHERE NOT EXISTS(SELECT NULL -- canonical way, but you can select
                             -- anything as EXISTS only checks existence
                      FROM public.registration_date_dimension
@@ -581,7 +614,8 @@ BEGIN
                                                                number_of_cylinders, cylinders_bore,
                                                                piston_stroke, compression_ratio,
                                                                number_of_valves_per_cylinder, drive_wheel,
-                                                               number_of_gears, front_suspension,
+                                                               number_of_gears, is_transmission_automatic,
+                                                               front_suspension,
                                                                rear_suspension, is_abs, steering_type,
                                                                power_steering,
                                                                min_turning_circle_turning_diameter,
@@ -654,6 +688,7 @@ BEGIN
                 (SELECT number_of_valves_per_cylinder FROM description),
                 (SELECT drive_wheel FROM description),
                 (SELECT number_of_gears FROM description),
+                (SELECT is_transmission_automatic FROM description),
                 (SELECT front_suspension FROM description),
                 (SELECT rear_suspension FROM description),
                 (SELECT is_abs FROM description),
